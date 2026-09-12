@@ -417,7 +417,9 @@ $(call inherit-product, hardware/samsung/exynos4x12.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/product_launched_with_k.mk)
 
 # Include non-opensource parts
+ifneq ($(PRODUCT_RELEASE_NAME),c1skt)
 $(call inherit-product, vendor/samsung/smdk4412-common-treble/smdk4412-common-vendor.mk)
+endif
 
 # Art
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
@@ -429,10 +431,16 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.lineage.build.vendor_security_patch=2015-11-05
 
 # Use go
-$(call inherit-product, $(LOCAL_PATH)/go_defaults.mk)
+ifneq ($(PRODUCT_RELEASE_NAME),c1skt)
+$(call inherit-product, $(COMMON_PATH)/go_defaults.mk)
+endif
 
 # Apply Dalvik config for 1G phone
+ifeq ($(PRODUCT_RELEASE_NAME),c1skt)
+$(call inherit-product, frameworks/native/build/phone-xhdpi-2048-dalvik-heap.mk)
+else
 $(call inherit-product, frameworks/native/build/phone-xhdpi-1024-dalvik-heap.mk)
+endif
 
 # Include debugging props
 $(call inherit-product, device/samsung/smdk4412-common/system_prop_debug.mk)

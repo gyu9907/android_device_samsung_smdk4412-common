@@ -2,6 +2,9 @@
 #pragma clang diagnostic ignored "-Wformat"
 #include "secril-shim.h"
 #include "secril-sap.h"
+#ifdef CMC221_MODEM
+#include "c1-ril-compat.h"
+#endif
 
 #define ATOI_NULL_HANDLED(x) (x ? atoi(x) : 0)
 
@@ -708,6 +711,18 @@ static void onRequestCompleteShim(RIL_Token t, RIL_Errno e, void *response, size
 			onRequestCompleteDataRegistrationState(t, e, response, responselen);
 			return;
 		case RIL_REQUEST_GET_SIM_STATUS:
+#ifdef CMC221_MODEM
+            // C1 has the v6 IMS index and five vendor words in every app entry.
+            if (response && responselen == sizeof(C1RilCardStatus)) {
+                RIL_CardStatus_v6 status = {};
+                if (!convertC1CardStatus(response, responselen, &status)) {
+                    rilEnv->OnRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+                } else {
+                    rilEnv->OnRequestComplete(t, e, &status, sizeof(status));
+                }
+                return;
+            }
+#endif
 			/* Remove unused extra elements from RIL_AppStatus */
 			if (response != NULL && responselen == sizeof(RIL_CardStatus_v5_samsung)) {
 				onCompleteRequestGetSimStatus(t, e, response);
@@ -768,7 +783,7 @@ static void onUnsolicitedResponseShim(int unsolResponse, const void *data, size_
 	rilEnv->OnUnsolicitedResponse(unsolResponse, data, datalen);
 }
 
-static void patchMem(void *libHandle) {
+static void __attribute__((unused)) patchMem(void *libHandle) {
 	/*
 	 * MAX_TIMEOUT is used for a call to pthread_cond_timedwait_relative_np.
 	 * The issue is bionic has switched to using absolute timeouts instead of
@@ -810,6 +825,15 @@ const RIL_RadioFunctions* RIL_Init(const struct RIL_Env *env, int argc, char **a
 	shimmedEnv.OnRequestComplete = onRequestCompleteShim;
 	shimmedEnv.OnUnsolicitedResponse = onUnsolicitedResponseShim;
 
+#ifdef CMC221_MODEM
+    // Keep legacy exports global for the subsequently loaded vendor RIL.
+    static void* c1_compat = dlopen("libc1-ril-compat.so", RTLD_NOW | RTLD_GLOBAL);
+    if (!c1_compat) {
+        RLOGE("Failed to load C1 RIL compatibility exports: %s", dlerror());
+        return NULL;
+    }
+#endif
+
 	/* Open and Init the original RIL. */
 
 	origRil = dlopen(RIL_LIB_PATH, RTLD_GLOBAL);
@@ -827,7 +851,9 @@ const RIL_RadioFunctions* RIL_Init(const struct RIL_Env *env, int argc, char **a
 	RLOGE("%s: RIL_Init = %x, origRil = %x", __func__, origRilInit, origRil);
 
 	// Fix RIL issues by patching memory
+#ifndef CMC221_MODEM
 	patchMem(origRil);
+#endif
 
 	//remove "-c" command line as Samsung's RIL does not understand it - it just barfs instead
 	for (int i = 0; i < argc; i++) {

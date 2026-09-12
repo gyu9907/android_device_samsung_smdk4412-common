@@ -29,6 +29,10 @@ ifeq ($(BOARD_MODEM_TYPE),mdm9x35)
 LOCAL_CFLAGS += -DMDM9X35_MODEM
 endif
 
+ifeq ($(BOARD_MODEM_TYPE),cmc221)
+LOCAL_CFLAGS += -DCMC221_MODEM
+endif
+
 LOCAL_MODULE := libsecril-shim
 LOCAL_VENDOR_MODULE := true
 
