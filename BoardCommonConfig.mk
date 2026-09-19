@@ -29,7 +29,6 @@ BUILD_BROKEN_DUP_RULES := true
 BUILD_BROKEN_USES_BUILD_COPY_HEADERS := true
 BUILD_BROKEN_USES_BUILD_HOST_STATIC_LIBRARY := true
 BUILD_BROKEN_USES_BUILD_HOST_EXECUTABLE := true
-TEMPORARY_DISABLE_PATH_RESTRICTIONS := true
 TARGET_OTA_ALLOW_NON_AB := true
 BUILD_BROKEN_MISSING_REQUIRED_MODULES := true
 RELAX_USES_LIBRARY_CHECK := true
@@ -88,19 +87,11 @@ BOARD_KERNEL_PAGESIZE := 2048
 LZMA_RAMDISK_TARGETS := recovery
 TARGET_KERNEL_CLANG_COMPILE := false
 
+# UL applies SDK overrides to executable paths, not individual libraries.
+# The GNSS service loads the legacy GPS HAL through the device GPS wrapper.
 TARGET_PROCESS_SDK_VERSION_OVERRIDE += \
-    /vendor/bin/hw/rild=19
-
-TARGET_PROCESS_SDK_VERSION_OVERRIDE := \
     /vendor/bin/hw/rild=22 \
-    /vendor/lib/libsec-ril.so=22 \
-    /vendor/lib/libsecnativefeature.so=22 \
-    /system/lib/libomission_avoidance.so=22 \
-    /system/lib/libfactoryutil.so=22 \
-    /vendor/lib/libakm.so=22 \
-    /vendor/lib/libsecril-client.so=22 \
-    /vendor/lib/hw/gps.exynos4.vendor.so=22 \
-    /vendor/lib/hw/gps.default.so=22 \
+    /vendor/bin/hw/android.hardware.gnss@1.0-service.exynos4=22 \
     /vendor/bin/glgps=22 \
     /vendor/bin/gpsd=22
 
